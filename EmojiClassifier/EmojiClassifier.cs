@@ -28,7 +28,7 @@ namespace EmojiClassifier
             CancellationToken cancellationToken = default)
         {
             var data = await GetDataAsync(cancellationToken);
-            List<EmojiMatch<TEmoji,TVariation>> emojiMatches = new();
+            var emojiMatches = new List<EmojiMatch<TEmoji, TVariation>>();
             foreach (var emoji in data)
             {
                 var variationAdded = false;
@@ -42,7 +42,7 @@ namespace EmojiClassifier
                     {
                         matchCount = Regex.Matches(str, Regex.Escape(variation.Unicode)).Count;
                         if (matchCount <= 0) continue;
-                        match = new(variation, matchCount);
+                        match = new EmojiMatch<TEmoji, TVariation>(variation, matchCount);
                         persistedMatch =
                             emojiMatches.FirstOrDefault(targetMatch => targetMatch.Variation != null && targetMatch.Variation.Equals(match.Variation));
                         if (persistedMatch == null)
@@ -60,7 +60,7 @@ namespace EmojiClassifier
 
                 matchCount = Regex.Matches(str, Regex.Escape(emoji.Unicode)).Count;
                 if (variationAdded || matchCount <= 0) continue;
-                match = new(emoji, matchCount);
+                match = new EmojiMatch<TEmoji, TVariation>(emoji, matchCount);
                 persistedMatch = emojiMatches.FirstOrDefault(targetMatch => targetMatch.Emoji != null && targetMatch.Emoji.Equals(match.Emoji));
                 if (persistedMatch == null)
                 {
@@ -74,7 +74,7 @@ namespace EmojiClassifier
 
             foreach (var match in emojiMatches)
             {
-                Dictionary<EmojiMatch<TEmoji,TVariation>, bool> partialEmojis = new();
+                var partialEmojis = new Dictionary<EmojiMatch<TEmoji, TVariation>, bool>();
                 var matchUnicode = match.Variation != null ? match.Variation.Unicode : match.Emoji.Unicode;
                 foreach (var partialMatch in emojiMatches.Where(partialEmoji => partialEmoji != match))
                 {

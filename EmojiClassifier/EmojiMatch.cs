@@ -7,15 +7,27 @@
         public TVariation Variation { get; }
         public int Occurrences { get; set; }
 
-        public virtual string VariationName => Variation?.Variation switch
+        public virtual string VariationName
         {
-            EmojiVariation.LightSkinTone => "Light Skin Tone",
-            EmojiVariation.MediumLightSkinTone => "Medium Light Skin Tone",
-            EmojiVariation.MediumSkinTone => "Medium Skin Tone",
-            EmojiVariation.MediumDarkSkinTone => "Medium Dark Skin Tone",
-            EmojiVariation.DarkSkinTone => "Dark Skin Tone",
-            _ => ""
-        };
+            get
+            {
+                switch (Variation?.Variation)
+                {
+                    case EmojiVariation.LightSkinTone:
+                        return "Light Skin Tone";
+                    case EmojiVariation.MediumLightSkinTone:
+                        return "Medium Light Skin Tone";
+                    case EmojiVariation.MediumSkinTone:
+                        return "Medium Skin Tone";
+                    case EmojiVariation.MediumDarkSkinTone:
+                        return "Medium Dark Skin Tone";
+                    case EmojiVariation.DarkSkinTone:
+                        return "Dark Skin Tone";
+                    default:
+                        return "";
+                }
+            }
+        }
 
         public EmojiMatch(TVariation variation, int occurrences = 1)
         {
