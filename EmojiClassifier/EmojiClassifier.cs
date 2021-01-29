@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace EmojiClassifier
 {
-    public class EmojiClassifier
+    public class EmojiClassifier : IDisposable
     {
         private readonly IEmojiDataProvider _emojiDataProvider;
 
@@ -14,6 +15,11 @@ namespace EmojiClassifier
         public EmojiClassifier(IEmojiDataProvider emojiDataProvider)
         {
             _emojiDataProvider = emojiDataProvider;
+        }
+
+        ~EmojiClassifier()
+        {
+            Dispose(false);
         }
 
         private async Task<IEnumerable<Emoji>> GetDataAsync() =>
@@ -91,6 +97,19 @@ namespace EmojiClassifier
             }
             
             return emojiMatches.Where(emojiOccurrence => emojiOccurrence.Occurrences > 0);
+        }
+        
+        private void Dispose(bool disposing)
+        {
+            if (!disposing) return;
+
+            _emojiDataProvider?.Dispose();
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }

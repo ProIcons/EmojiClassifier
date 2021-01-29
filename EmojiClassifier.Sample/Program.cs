@@ -74,17 +74,13 @@ namespace EmojiClassifier.Sample
         private const string Url = "https://raw.githubusercontent.com/iamcal/emoji-data/master/emoji_pretty.json";
         public IEnumerable<Emoji> GetData() => GetDataAsync().GetAwaiter().GetResult();
         private readonly HttpClient _httpClient = new HttpClient();
-
+        private IEnumerable<Emoji> _emojis;
         ~GithubEmojiDataProvider()
         {
             Dispose(false);
         }
 
-        public async Task<IEnumerable<Emoji>> GetDataAsync()
-        {
-            return JsonSerializer.Deserialize<List<DEmoji>>(
-                await _httpClient.GetStringAsync(Url));
-        }
+        public async Task<IEnumerable<Emoji>> GetDataAsync() => _emojis ??= JsonSerializer.Deserialize<List<DEmoji>>(await _httpClient.GetStringAsync(Url));
 
         private void Dispose(bool disposing)
         {
@@ -104,9 +100,9 @@ namespace EmojiClassifier.Sample
     {
         public static async Task Main(string[] args)
         {
-            var emojiProvider = new GithubEmojiDataProvider();
-            var emojiClassifier = new EmojiClassifier(emojiProvider);
-            var str = File.ReadAllText("file.txt");
+            using var emojiProvider = new GithubEmojiDataProvider();
+            using var emojiClassifier = new EmojiClassifier(emojiProvider);
+            var str = await File.ReadAllTextAsync("file.txt");
 
             var emojis = await emojiClassifier.GetEmojisAsync(str);
 
