@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 
 namespace EmojiClassifier
 {
-    public interface IEmojiDataProvider : IDisposable
+    public interface IEmojiDataProvider<TEmoji,TVariation> : IDisposable where TEmoji : IEmoji<TEmoji,TVariation> where TVariation : IEmojiVariation<TEmoji,TVariation>
     {
-        IEnumerable<Emoji> GetData();
-        Task<IEnumerable<Emoji>> GetDataAsync(CancellationToken cancellationToken = default);
+        IEnumerable<TEmoji> GetData();
+        Task<IEnumerable<TEmoji>> GetDataAsync(CancellationToken cancellationToken = default);
     }
 }

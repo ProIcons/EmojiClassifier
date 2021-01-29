@@ -10,67 +10,70 @@ using System.Threading.Tasks;
 
 namespace EmojiClassifier.Sample
 {
-    public record DEmojiVariation : Emoji.Variation
+    public record EmojiVariation : IEmojiVariation<Emoji,EmojiVariation>
     {
         public string Id { get; set; }
 
         [JsonPropertyName("unified")]
         public string Unified { get; init; }
 
-        public DEmojiVariation()
+        public EmojiVariation()
         {
         }
 
-        public DEmojiVariation(DEmoji parent, DEmojiVariation emojiVariation, string variation)
+        public EmojiVariation(Emoji parent, EmojiVariation emojiVariation, string variation)
         {
             Id = variation;
             Unified = emojiVariation.Unified;
             Parent = parent;
-            EmojiVariation = variation?.ToUpper() switch
+            Variation = variation?.ToUpper() switch
             {
-                "1F3FC" => EmojiVariation.LightSkinTone,
-                "1F3FB" => EmojiVariation.MediumLightSkinTone,
-                "1F3FD" => EmojiVariation.MediumSkinTone,
-                "1F3FE" => EmojiVariation.MediumDarkSkinTone,
-                "1F3FF" => EmojiVariation.DarkSkinTone,
-                _ => EmojiVariation.Default
+                "1F3FC" => EmojiClassifier.EmojiVariation.LightSkinTone,
+                "1F3FB" => EmojiClassifier.EmojiVariation.MediumLightSkinTone,
+                "1F3FD" => EmojiClassifier.EmojiVariation.MediumSkinTone,
+                "1F3FE" => EmojiClassifier.EmojiVariation.MediumDarkSkinTone,
+                "1F3FF" => EmojiClassifier.EmojiVariation.DarkSkinTone,
+                _ => EmojiClassifier.EmojiVariation.Default
             };
         }
 
-        public override string Unicode => Unified.Split('-').Aggregate("",
+        public Emoji Parent { get; }
+        public EmojiClassifier.EmojiVariation Variation { get; }
+        
+        public string Unicode => Unified.Split('-').Aggregate("",
             (current, hex) => current + char.ConvertFromUtf32(Convert.ToInt32(hex, 16)));
     }
 
-    public record DEmoji : Emoji
+    public record Emoji : IEmoji<Emoji,EmojiVariation>
     {
         [JsonPropertyName("name")]
-        public override string Name { get; init; }
+        public string Name { get; init; }
 
         [JsonPropertyName("unified")]
         public string Unified { get; set; }
 
-        public override string Unicode => Unified.Split('-').Aggregate("",
+        public string Unicode => Unified.Split('-').Aggregate("",
             (current, hex) => current + char.ConvertFromUtf32(Convert.ToInt32(hex, 16)));
 
         [JsonPropertyName("skin_variations")]
-        public Dictionary<String, DEmojiVariation> SkinVariations
+        public Dictionary<String, EmojiVariation> SkinVariations
         {
             get => _variations.ToDictionary((variation => variation.Id));
             set => _variations = value?.Select(keyValuePair =>
-                new DEmojiVariation(this, keyValuePair.Value, keyValuePair.Key)
+                new EmojiVariation(this, keyValuePair.Value, keyValuePair.Key)
             );
         }
 
-        private IEnumerable<DEmojiVariation> _variations;
+        private IEnumerable<EmojiVariation> _variations;
 
-        public override IEnumerable<Emoji.Variation> Variations
+        public IEnumerable<EmojiVariation> Variations
         {
             get => _variations;
-            init => _variations = value.Cast<DEmojiVariation>();
+            init => _variations = value;
         }
     }
 
-    public class GithubEmojiDataProvider : IEmojiDataProvider
+    public class GithubEmojiDataProvider : IEmojiDataProvider<Emoji,EmojiVariation>
     {
         private const string Url = "https://raw.githubusercontent.com/iamcal/emoji-data/master/emoji_pretty.json";
         private readonly HttpClient _httpClient = new HttpClient();
@@ -82,7 +85,7 @@ namespace EmojiClassifier.Sample
         }
 
         public async Task<IEnumerable<Emoji>> GetDataAsync(CancellationToken cancellationToken = default) => _emojis ??=
-            JsonSerializer.Deserialize<List<DEmoji>>(await _httpClient.GetStringAsync(Url, cancellationToken));
+            JsonSerializer.Deserialize<List<Emoji>>(await _httpClient.GetStringAsync(Url, cancellationToken));
 
         public IEnumerable<Emoji> GetData() => GetDataAsync().GetAwaiter().GetResult();
 
@@ -105,7 +108,7 @@ namespace EmojiClassifier.Sample
         public static async Task Main(string[] args)
         {
             using var emojiProvider = new GithubEmojiDataProvider();
-            using var emojiClassifier = new EmojiClassifier(emojiProvider);
+            using var emojiClassifier = new EmojiClassifier<Emoji,EmojiVariation>(emojiProvider);
             var str = await File.ReadAllTextAsync("file.txt");
 
             var emojis = await emojiClassifier.GetEmojisAsync(str);

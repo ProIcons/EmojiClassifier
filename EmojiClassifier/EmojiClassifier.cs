@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 
 namespace EmojiClassifier
 {
-    public class EmojiClassifier : IDisposable
+    public class EmojiClassifier<TEmoji,TVariation> : IDisposable where TEmoji : IEmoji<TEmoji,TVariation> where TVariation : IEmojiVariation<TEmoji,TVariation>
     {
-        private readonly IEmojiDataProvider _emojiDataProvider;
+        protected IEmojiDataProvider<TEmoji,TVariation> EmojiDataProvider { get; }
 
-        public EmojiClassifier(IEmojiDataProvider emojiDataProvider)
+        public EmojiClassifier(IEmojiDataProvider<TEmoji,TVariation> emojiDataProvider)
         {
-            _emojiDataProvider = emojiDataProvider;
+            EmojiDataProvider = emojiDataProvider;
         }
 
         ~EmojiClassifier()
@@ -21,17 +21,19 @@ namespace EmojiClassifier
             Dispose(false);
         }
 
-        protected async Task<IEnumerable<Emoji>> GetDataAsync(CancellationToken cancellationToken = default) => await _emojiDataProvider.GetDataAsync(cancellationToken);
+        protected async Task<IEnumerable<TEmoji>> GetDataAsync(CancellationToken cancellationToken = default) =>
+            await EmojiDataProvider.GetDataAsync(cancellationToken);
 
-        public virtual async Task<IEnumerable<EmojiMatch>> GetEmojisAsync(string str, CancellationToken cancellationToken = default)
+        public virtual async Task<IEnumerable<EmojiMatch<TEmoji,TVariation>>> GetEmojisAsync(string str,
+            CancellationToken cancellationToken = default)
         {
             var data = await GetDataAsync(cancellationToken);
-            List<EmojiMatch> emojiMatches = new();
+            List<EmojiMatch<TEmoji,TVariation>> emojiMatches = new();
             foreach (var emoji in data)
             {
                 var variationAdded = false;
-                EmojiMatch persistedMatch;
-                EmojiMatch match;
+                EmojiMatch<TEmoji,TVariation> persistedMatch;
+                EmojiMatch<TEmoji,TVariation> match;
                 int matchCount;
 
                 if (emoji.Variations != null)
@@ -42,7 +44,7 @@ namespace EmojiClassifier
                         if (matchCount <= 0) continue;
                         match = new(variation, matchCount);
                         persistedMatch =
-                            emojiMatches.FirstOrDefault(targetMatch => targetMatch.Variation == match.Variation);
+                            emojiMatches.FirstOrDefault(targetMatch => targetMatch.Variation != null && targetMatch.Variation.Equals(match.Variation));
                         if (persistedMatch == null)
                         {
                             emojiMatches.Add(match);
@@ -59,7 +61,7 @@ namespace EmojiClassifier
                 matchCount = Regex.Matches(str, Regex.Escape(emoji.Unicode)).Count;
                 if (variationAdded || matchCount <= 0) continue;
                 match = new(emoji, matchCount);
-                persistedMatch = emojiMatches.FirstOrDefault(targetMatch => targetMatch.Emoji == match.Emoji);
+                persistedMatch = emojiMatches.FirstOrDefault(targetMatch => targetMatch.Emoji != null && targetMatch.Emoji.Equals(match.Emoji));
                 if (persistedMatch == null)
                 {
                     emojiMatches.Add(match);
@@ -72,7 +74,7 @@ namespace EmojiClassifier
 
             foreach (var match in emojiMatches)
             {
-                Dictionary<EmojiMatch, bool> partialEmojis = new();
+                Dictionary<EmojiMatch<TEmoji,TVariation>, bool> partialEmojis = new();
                 var matchUnicode = match.Variation != null ? match.Variation.Unicode : match.Emoji.Unicode;
                 foreach (var partialMatch in emojiMatches.Where(partialEmoji => partialEmoji != match))
                 {
@@ -93,15 +95,15 @@ namespace EmojiClassifier
                     }
                 }
             }
-            
+
             return emojiMatches.Where(emojiOccurrence => emojiOccurrence.Occurrences > 0);
         }
-        
+
         private void Dispose(bool disposing)
         {
             if (!disposing) return;
 
-            _emojiDataProvider?.Dispose();
+            EmojiDataProvider?.Dispose();
         }
 
         public void Dispose()
