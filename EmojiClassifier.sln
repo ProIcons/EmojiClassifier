@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmojiClassifier", "EmojiClassifier\EmojiClassifier.csproj", "{1CB9DD85-95F0-4825-BE44-B0F3F1CE5B06}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmojiClassifier.Sample", "EmojiClassifier.Sample\EmojiClassifier.Sample.csproj", "{B0246468-BD11-40C6-A5F4-2743EBD1E0AA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1CB9DD85-95F0-4825-BE44-B0F3F1CE5B06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CB9DD85-95F0-4825-BE44-B0F3F1CE5B06}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CB9DD85-95F0-4825-BE44-B0F3F1CE5B06}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CB9DD85-95F0-4825-BE44-B0F3F1CE5B06}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0246468-BD11-40C6-A5F4-2743EBD1E0AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0246468-BD11-40C6-A5F4-2743EBD1E0AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0246468-BD11-40C6-A5F4-2743EBD1E0AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0246468-BD11-40C6-A5F4-2743EBD1E0AA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
