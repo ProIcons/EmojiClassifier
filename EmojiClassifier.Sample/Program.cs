@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EmojiClassifier.Sample
@@ -72,15 +73,18 @@ namespace EmojiClassifier.Sample
     public class GithubEmojiDataProvider : IEmojiDataProvider
     {
         private const string Url = "https://raw.githubusercontent.com/iamcal/emoji-data/master/emoji_pretty.json";
-        public IEnumerable<Emoji> GetData() => GetDataAsync().GetAwaiter().GetResult();
         private readonly HttpClient _httpClient = new HttpClient();
         private IEnumerable<Emoji> _emojis;
+
         ~GithubEmojiDataProvider()
         {
             Dispose(false);
         }
 
-        public async Task<IEnumerable<Emoji>> GetDataAsync() => _emojis ??= JsonSerializer.Deserialize<List<DEmoji>>(await _httpClient.GetStringAsync(Url));
+        public async Task<IEnumerable<Emoji>> GetDataAsync(CancellationToken cancellationToken = default) => _emojis ??=
+            JsonSerializer.Deserialize<List<DEmoji>>(await _httpClient.GetStringAsync(Url, cancellationToken));
+
+        public IEnumerable<Emoji> GetData() => GetDataAsync().GetAwaiter().GetResult();
 
         private void Dispose(bool disposing)
         {

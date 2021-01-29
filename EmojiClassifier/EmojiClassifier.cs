@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EmojiClassifier
@@ -20,11 +21,11 @@ namespace EmojiClassifier
             Dispose(false);
         }
 
-        private async Task<IEnumerable<Emoji>> GetDataAsync() => await _emojiDataProvider.GetDataAsync();
+        protected async Task<IEnumerable<Emoji>> GetDataAsync(CancellationToken cancellationToken = default) => await _emojiDataProvider.GetDataAsync(cancellationToken);
 
-        public async Task<IEnumerable<EmojiMatch>> GetEmojisAsync(string str)
+        public virtual async Task<IEnumerable<EmojiMatch>> GetEmojisAsync(string str, CancellationToken cancellationToken = default)
         {
-            var data = await GetDataAsync();
+            var data = await GetDataAsync(cancellationToken);
             List<EmojiMatch> emojiMatches = new();
             foreach (var emoji in data)
             {
