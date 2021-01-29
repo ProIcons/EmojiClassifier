@@ -69,7 +69,7 @@ namespace EmojiClassifier.Sample
         }
     }
 
-    public class GithubEmojiDataProvider : IEmojiDataProvider, IDisposable
+    public class GithubEmojiDataProvider : IEmojiDataProvider
     {
         private const string Url = "https://raw.githubusercontent.com/iamcal/emoji-data/master/emoji_pretty.json";
         public IEnumerable<Emoji> GetData() => GetDataAsync().GetAwaiter().GetResult();

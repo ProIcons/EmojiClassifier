@@ -10,8 +10,6 @@ namespace EmojiClassifier
     {
         private readonly IEmojiDataProvider _emojiDataProvider;
 
-        private IEnumerable<Emoji> _emojiData;
-
         public EmojiClassifier(IEmojiDataProvider emojiDataProvider)
         {
             _emojiDataProvider = emojiDataProvider;
@@ -22,8 +20,7 @@ namespace EmojiClassifier
             Dispose(false);
         }
 
-        private async Task<IEnumerable<Emoji>> GetDataAsync() =>
-            _emojiData ??= await _emojiDataProvider.GetDataAsync();
+        private async Task<IEnumerable<Emoji>> GetDataAsync() => await _emojiDataProvider.GetDataAsync();
 
         public async Task<IEnumerable<EmojiMatch>> GetEmojisAsync(string str)
         {
