@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -33,7 +31,7 @@ namespace EmojiClassifier
             while (textElementEnumerator.MoveNext())
             {
                 var targetCharacter = textElementEnumerator.GetTextElement();
-                if (!targetCharacter.IsUnicode())
+                if (!targetCharacter.IsInEmojiUnicodeSpace())
                     continue;
 
                 EmojiMatch<TEmoji, TVariation> match;
