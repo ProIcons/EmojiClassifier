@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace EmojiClassifier.Sample
 {
-    public record EmojiVariation : IEmojiVariation<Emoji,EmojiVariation>
+    public record EmojiVariation : IEmojiVariation<Emoji, EmojiVariation>
     {
         public string Id { get; set; }
 
@@ -33,18 +34,17 @@ namespace EmojiClassifier.Sample
                 "1F3FD" => EmojiClassifier.EmojiVariation.MediumSkinTone,
                 "1F3FE" => EmojiClassifier.EmojiVariation.MediumDarkSkinTone,
                 "1F3FF" => EmojiClassifier.EmojiVariation.DarkSkinTone,
-                _ => EmojiClassifier.EmojiVariation.Default
+                _       => EmojiClassifier.EmojiVariation.Default
             };
         }
 
         public Emoji Parent { get; }
         public EmojiClassifier.EmojiVariation Variation { get; }
-        
-        public string Unicode => Unified.Split('-').Aggregate("",
-            (current, hex) => current + char.ConvertFromUtf32(Convert.ToInt32(hex, 16)));
+
+        public string Unicode => Unified.Split('-').Aggregate("", (current, hex) => current + char.ConvertFromUtf32(Convert.ToInt32(hex, 16)));
     }
 
-    public record Emoji : IEmoji<Emoji,EmojiVariation>
+    public record Emoji : IEmoji<Emoji, EmojiVariation>
     {
         [JsonPropertyName("name")]
         public string Name { get; init; }
@@ -52,16 +52,13 @@ namespace EmojiClassifier.Sample
         [JsonPropertyName("unified")]
         public string Unified { get; set; }
 
-        public string Unicode => Unified.Split('-').Aggregate("",
-            (current, hex) => current + char.ConvertFromUtf32(Convert.ToInt32(hex, 16)));
+        public string Unicode => Unified.Split('-').Aggregate("", (current, hex) => current + char.ConvertFromUtf32(Convert.ToInt32(hex, 16)));
 
         [JsonPropertyName("skin_variations")]
         public Dictionary<String, EmojiVariation> SkinVariations
         {
             get => _variations.ToDictionary((variation => variation.Id));
-            set => _variations = value?.Select(keyValuePair =>
-                new EmojiVariation(this, keyValuePair.Value, keyValuePair.Key)
-            );
+            set => _variations = value?.Select(keyValuePair => new EmojiVariation(this, keyValuePair.Value, keyValuePair.Key));
         }
 
         private IEnumerable<EmojiVariation> _variations;
@@ -73,7 +70,7 @@ namespace EmojiClassifier.Sample
         }
     }
 
-    public class GithubEmojiDataProvider : IEmojiDataProvider<Emoji,EmojiVariation>
+    public class GithubEmojiDataProvider : IEmojiDataProvider<Emoji, EmojiVariation>
     {
         private const string Url = "https://raw.githubusercontent.com/iamcal/emoji-data/master/emoji_pretty.json";
         private readonly HttpClient _httpClient = new HttpClient();
@@ -108,15 +105,29 @@ namespace EmojiClassifier.Sample
         public static async Task Main(string[] args)
         {
             using var emojiProvider = new GithubEmojiDataProvider();
-            using var emojiClassifier = new EmojiClassifier<Emoji,EmojiVariation>(emojiProvider);
-            var str = await File.ReadAllTextAsync("file.txt");
+            using var emojiClassifier = new EmojiClassifier<Emoji, EmojiVariation>(emojiProvider);
+            var lines = await File.ReadAllLinesAsync("file.txt");
 
-            var emojis = await emojiClassifier.GetEmojisAsync(str);
+            var line = 1;
 
-            foreach (var emojiMatch in emojis)
+            var stopwatch = new Stopwatch();
+            Console.WriteLine($"Fetching data from provider...");
+            stopwatch.Start();
+            await emojiProvider.GetDataAsync();
+            stopwatch.Stop();
+            Console.WriteLine($"Fetched data in {stopwatch.Elapsed.Milliseconds}ms");
+            
+            foreach (var str in lines)
             {
-                Console.WriteLine(
-                    $"Found {emojiMatch.Emoji.Name} {(emojiMatch.VariationName.ToUpper())} - {emojiMatch.Occurrences} Times");
+                stopwatch.Reset();
+                stopwatch.Start();
+                var emojis = await emojiClassifier.GetEmojisAsync(str);
+                stopwatch.Stop();
+                foreach (var emojiMatch in emojis)
+                {
+                    Console.WriteLine($"Line {line}: Found {emojiMatch.Emoji.Name} {(emojiMatch.VariationName.ToUpper())} - {emojiMatch.Occurrences} Times in {stopwatch.Elapsed.Milliseconds}ms");
+                }
+                line++;
             }
         }
     }

@@ -1,7 +1,7 @@
 ﻿namespace EmojiClassifier
 {
     public class EmojiMatch<TEmoji, TVariation> where TEmoji : IEmoji<TEmoji, TVariation>
-        where TVariation : IEmojiVariation<TEmoji, TVariation>
+                                                where TVariation : IEmojiVariation<TEmoji, TVariation>
     {
         public TEmoji Emoji { get; }
         public TVariation Variation { get; }

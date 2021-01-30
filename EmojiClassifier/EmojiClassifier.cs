@@ -1,114 +1,70 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace EmojiClassifier
 {
-    public class EmojiClassifier<TEmoji,TVariation> : IDisposable where TEmoji : IEmoji<TEmoji,TVariation> where TVariation : IEmojiVariation<TEmoji,TVariation>
+    public class EmojiClassifier<TEmoji, TVariation> : IDisposable where TEmoji : IEmoji<TEmoji, TVariation>
+                                                                   where TVariation : IEmojiVariation<TEmoji, TVariation>
     {
-        protected IEmojiDataProvider<TEmoji,TVariation> EmojiDataProvider { get; }
+        protected IEmojiDataProvider<TEmoji, TVariation> EmojiDataProvider { get; }
 
-        public EmojiClassifier(IEmojiDataProvider<TEmoji,TVariation> emojiDataProvider)
+        public EmojiClassifier(IEmojiDataProvider<TEmoji, TVariation> emojiDataProvider)
         {
             EmojiDataProvider = emojiDataProvider;
         }
-
-        ~EmojiClassifier()
-        {
-            Dispose(false);
-        }
-
+        
         protected async Task<IEnumerable<TEmoji>> GetDataAsync(CancellationToken cancellationToken = default) =>
             await EmojiDataProvider.GetDataAsync(cancellationToken);
 
-        public virtual async Task<IEnumerable<EmojiMatch<TEmoji,TVariation>>> GetEmojisAsync(string str,
-            CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<EmojiMatch<TEmoji, TVariation>>> GetEmojisAsync(string str, CancellationToken cancellationToken = default)
         {
             var data = await GetDataAsync(cancellationToken);
+            var emojis = data.ToArray();
+            
             var emojiMatches = new List<EmojiMatch<TEmoji, TVariation>>();
-            foreach (var emoji in data)
+            var textElementEnumerator = StringInfo.GetTextElementEnumerator(str);
+            
+            while (textElementEnumerator.MoveNext())
             {
-                var variationAdded = false;
-                EmojiMatch<TEmoji,TVariation> persistedMatch;
-                EmojiMatch<TEmoji,TVariation> match;
-                int matchCount;
+                var targetCharacter = textElementEnumerator.GetTextElement();
+                if (!targetCharacter.IsUnicode())
+                    continue;
 
-                if (emoji.Variations != null)
+                EmojiMatch<TEmoji, TVariation> match;
+                TVariation targetVariation = default;
+                var targetEmoji = emojis.FirstOrDefault(emoji =>
+                    emoji.Unicode == targetCharacter || (targetVariation = emoji.Variations != null
+                        ? emoji.Variations.FirstOrDefault(variation => variation.Unicode == targetCharacter)
+                        : default) != null);
+
+                if (targetVariation != null)
                 {
-                    foreach (var variation in emoji.Variations)
-                    {
-                        matchCount = Regex.Matches(str, Regex.Escape(variation.Unicode)).Count;
-                        if (matchCount <= 0) continue;
-                        match = new EmojiMatch<TEmoji, TVariation>(variation, matchCount);
-                        persistedMatch =
-                            emojiMatches.FirstOrDefault(targetMatch => targetMatch.Variation != null && targetMatch.Variation.Equals(match.Variation));
-                        if (persistedMatch == null)
-                        {
-                            emojiMatches.Add(match);
-                        }
-                        else
-                        {
-                            persistedMatch.Occurrences += matchCount;
-                        }
-
-                        variationAdded = true;
-                    }
+                    if ((match = emojiMatches.FirstOrDefault(targetMatch => targetMatch.Variation != null && targetMatch.Variation.Equals(targetVariation))) != null)
+                        match.Occurrences++;
+                    else
+                        emojiMatches.Add(new EmojiMatch<TEmoji, TVariation>(targetVariation));
                 }
-
-                matchCount = Regex.Matches(str, Regex.Escape(emoji.Unicode)).Count;
-                if (variationAdded || matchCount <= 0) continue;
-                match = new EmojiMatch<TEmoji, TVariation>(emoji, matchCount);
-                persistedMatch = emojiMatches.FirstOrDefault(targetMatch => targetMatch.Emoji != null && targetMatch.Emoji.Equals(match.Emoji));
-                if (persistedMatch == null)
+                else if (targetEmoji != null)
                 {
-                    emojiMatches.Add(match);
-                }
-                else
-                {
-                    persistedMatch.Occurrences += matchCount;
+                    if ((match = emojiMatches.FirstOrDefault(targetMatch => targetMatch.Emoji != null && targetMatch.Emoji.Equals(targetEmoji))) != null)
+                        match.Occurrences++;
+                    else
+                        emojiMatches.Add(new EmojiMatch<TEmoji, TVariation>(targetEmoji));
                 }
             }
 
-            foreach (var match in emojiMatches)
-            {
-                var partialEmojis = new Dictionary<EmojiMatch<TEmoji, TVariation>, bool>();
-                var matchUnicode = match.Variation != null ? match.Variation.Unicode : match.Emoji.Unicode;
-                foreach (var partialMatch in emojiMatches.Where(partialEmoji => partialEmoji != match))
-                {
-                    var partialMatchUnicode = partialMatch.Variation != null
-                        ? partialMatch.Variation.Unicode
-                        : partialMatch.Emoji.Unicode;
-                    if (matchUnicode.Contains(partialMatchUnicode))
-                    {
-                        partialEmojis.Add(partialMatch, true);
-                    }
-                }
-
-                if (matchUnicode.Length >= partialEmojis.Count)
-                {
-                    foreach (var targetEmoji in partialEmojis.Keys)
-                    {
-                        targetEmoji.Occurrences -= 1;
-                    }
-                }
-            }
-
-            return emojiMatches.Where(emojiOccurrence => emojiOccurrence.Occurrences > 0);
-        }
-
-        private void Dispose(bool disposing)
-        {
-            if (!disposing) return;
-
-            EmojiDataProvider?.Dispose();
+            return emojiMatches;
         }
 
         public void Dispose()
         {
-            Dispose(true);
+            EmojiDataProvider?.Dispose();
             GC.SuppressFinalize(this);
         }
     }
